@@ -1,4 +1,3 @@
-cat > ~/Downloads/bechdel_ml/src/data_loader.py << 'EOF'
 """
 Data loader for the Bechdel-prediction project.
 Provides two sources: real Kaggle CSV or synthetic fallback.
@@ -148,4 +147,3 @@ if __name__ == "__main__":
     print("\nShape:", df.shape)
     print("\nPass rate:", df["bechdel_pass"].mean().round(3))
     print("\nMissingness:\n", df.isna().mean().round(3))
-EOF
