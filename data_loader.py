@@ -18,7 +18,7 @@ EXPECTED_COLS = [
 
 def load_real_data(path: str | Path) -> pd.DataFrame:
     """Load the Kaggle CSV and normalize column names to the contract above."""
-    df = pd.read_csv(path)
+    df = pd.read_csv(path, na_values=["\\N", "N/A", "NA", ""])
 
     # Map Kaggle/FiveThirtyEight column names to our standard names
     rename_map = {
@@ -42,6 +42,11 @@ def load_real_data(path: str | Path) -> pd.DataFrame:
         df["genres"] = df[gcols].apply(
             lambda r: "|".join(v for v in r if pd.notna(v) and v != ""), axis=1)
 
+    # Coerce numeric columns so stray strings become NaN
+    for col in ["year", "runtime", "budget", "revenue", "imdb_rating", "num_votes"]:
+        if col in df.columns:
+            df[col] = pd.to_numeric(df[col], errors="coerce")
+
     # Add budget/revenue as NaN if the CSV doesn't have them
     for col in ["budget", "revenue"]:
         if col not in df.columns:
@@ -55,7 +60,10 @@ def load_real_data(path: str | Path) -> pd.DataFrame:
     if missing:
         raise ValueError(f"CSV missing columns: {missing}. Extend rename_map.")
 
-    return df[EXPECTED_COLS].copy()
+    df = df[EXPECTED_COLS].copy()
+    df = df.dropna(subset=["bechdel_pass", "bechdel_score"])
+    df["bechdel_pass"] = df["bechdel_pass"].astype(int)
+    return df
 
 
 def load_synthetic_data(n: int = 9_000, seed: int = 42) -> pd.DataFrame:
