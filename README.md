@@ -61,8 +61,7 @@ ML_group_project/
 │   └── evaluation2.py        # CV, test metrics, confusion matrix, ROC & learning curves
 │
 ├── notebooks/
-│   ├── bechdel_1_to_44.ipynb            # Main end-to-end notebook
-│   ├── bechdel_experiments.ipynb        # Extended experiment suite
+│   ├── bechdel.ipynb            # First end-to-end notebook
 │   └── bechdel_experiments_FinalVersion.ipynb # FINAL VERSION OF NOTEBOOK, USE THIS FOR REPRODUCIBILITY OF RESULTS
 │
 ├── data/
