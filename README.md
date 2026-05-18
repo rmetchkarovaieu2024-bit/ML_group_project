@@ -63,7 +63,7 @@ ML_group_project/
 ├── notebooks/
 │   ├── bechdel_1_to_44.ipynb            # Main end-to-end notebook
 │   ├── bechdel_experiments.ipynb        # Extended experiment suite
-|   ├── bechdel_experiments_fixedV2.ipynb # Fixed experiment suite
+|   ├── bechdel_experiments_fixed.ipynb # Fixed experiment suite
 │   └── bechdel_experiments_FinalVersion.ipynb # FINAL VERSION OF NOTEBOOK, USE THIS FOR REPRODUCIBILITY OF RESULTS
 │
 ├── data/
