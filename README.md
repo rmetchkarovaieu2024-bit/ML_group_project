@@ -1,62 +1,51 @@
-# 🎬 Predicting the Bechdel Test from Movie Metadata
+# Predicting Bechdel Test Outcomes Using Machine Learning
 
-**Machine Learning Foundations — Group Project**
-IE University · BDBA Class of 2028
+> *Structure predicts representation. The question now is — what does the industry do about it?*
 
-**Team:** Raya Metchkarova · Alexander Glapiak · Alp Kurtbolat · Aysel Zeynalova · Milan Josifovikj · Samuel Sacha Benayoun
+**IE University · BDBA 2028 · Machine Learning Foundations · Group 8**
 
----
-
-## Table of Contents
-
-1. [Overview](#overview)
-2. [Research Questions](#research-questions)
-3. [Dataset](#dataset)
-4. [Project Structure](#project-structure)
-5. [Feature Engineering](#feature-engineering)
-6. [Models](#models)
-7. [Experiments](#experiments)
-8. [Results](#results)
-9. [Installation & Usage](#installation--usage)
+Raya Metchkarova · Alexander Glapiak · Alp Kurtbolat · Aysel Zeynalova · Milan Josifovikj · Samuel Sacha Benayoun
 
 ---
 
-## Overview
+## What This Project Is
 
-This project applies supervised machine learning to predict whether a film **passes the Bechdel Test** — a widely used benchmark for female representation in cinema. A film passes if it (1) has at least two named women, (2) who talk to each other, (3) about something other than a man.
+Can a machine predict whether a film gives women a real voice on screen — from metadata alone, without watching a single frame?
 
-Using pre-release movie metadata (genre, year, runtime, budget, IMDb rating), we train and evaluate a suite of classifiers — from a majority-class dummy to gradient-boosted trees — and run a systematic set of ablation and confound-control experiments to determine *what the model is actually learning*.
+We built a supervised ML pipeline to answer that question. Using pre-release movie metadata — genre, release year, runtime, IMDb rating, budget, revenue — we trained five classifiers to predict whether a film passes the **Bechdel Test**: the widely used three-criteria benchmark for female representation in cinema.
 
----
-
-## Research Questions
-
-1. Is the model learning **meaningful, representation-related patterns** from pre-release movie metadata?
-2. Or is it relying on **shortcut / confounding features** — genre stereotypes, popularity signals, temporal trends, or enrichment artifacts?
+Our best model, a tuned XGBoost classifier, reaches **ROC-AUC 0.700** — twenty points above a coin-flip baseline. Genre is the strongest individual signal, but removing it entirely barely hurts the model. Decade, popularity, and financial scale carry more weight than expected. The ceiling isn't the models. It's the data.
 
 ---
 
-## Dataset
+## The Bechdel Test
 
-**Primary source:** FiveThirtyEight Bechdel data joined to IMDb/TMDb metadata via the Kaggle dataset [*9000+ Movies: IMDb and Bechdel*](https://www.kaggle.com/).
+A film passes if it meets three criteria:
 
-| Column | Description |
-|--------|-------------|
-| `imdb_id` | IMDb title identifier |
-| `title` | Film title |
-| `year` | Release year |
-| `runtime` | Runtime in minutes |
-| `budget` | Production budget (TMDb; ~50–78% missing) |
-| `revenue` | Box office revenue (TMDb; ~50–75% missing) |
-| `imdb_rating` | IMDb average user rating |
-| `num_votes` | IMDb vote count |
-| `genres` | Pipe-separated genre list |
-| `bechdel_score` | Ordinal Bechdel score (0–3) |
-| `bechdel_pass` | **Binary target** — 1 if score = 3, else 0 |
+1. It has **at least two named female characters**
+2. Those characters **talk to each other**
+3. About **something other than a man**
 
-> **Note on missingness:** Budget, revenue, and TMDb popularity are missing for a large fraction of films. This is by design — TMDb only partially overlaps with the Bechdel/IMDb corpus. Missing values are *not* missing at random; they correlate with production scale. The project explicitly tests whether data absence itself is a predictive signal.
+Only **57% of films** in our dataset pass all three. More than four in ten films — including many critically acclaimed, commercially successful ones — cannot clear that bar. That number is the motivation for this project.
 
-A **synthetic data generator** (`data_loader.py`) is included so the full pipeline can be developed and tested without access to the Kaggle CSV. Metrics from synthetic data are clearly watermarked and are not scientific results.
+---
+
+## Results at a Glance
+
+| Model | CV ROC-AUC | Test AUC | Test F1 |
+|---|---|---|---|
+| Dummy (majority) | 0.500 ± 0.000 | 0.500 | 0.732 |
+| Decision Tree (d=6) | 0.618 ± 0.014 | 0.633 | 0.721 |
+| Logistic Regression | 0.659 ± 0.012 | 0.665 | 0.719 |
+| Random Forest (n=300) | 0.668 ± 0.011 | 0.655 | 0.705 |
+| **XGBoost (tuned) ★** | **0.689 ± 0.009** | **0.700** | **0.714** |
+
+Key findings from the experiment suite:
+
+- **Genre** produces the largest AUC drop when removed — but most predictive power survives without it. The signal is distributed, not concentrated.
+- **Missingness indicators** (`budget_missing`, `revenue_missing`) have a measurable but small effect. The model is not exploiting data gaps as a shortcut.
+- **Multiple interacting signals** — decade, `log_num_votes`, financial scale — drive performance rather than one dominant feature.
+- The bottleneck is **data sparsity**, not model complexity. 78% of budget/revenue values are median-imputed; TMDb covers only 22% of the corpus.
 
 ---
 
@@ -68,137 +57,132 @@ ML_group_project/
 ├── src/
 │   ├── data_loader.py       # Real CSV loader + synthetic data generator
 │   ├── preprocessing.py     # Feature engineering & sklearn ColumnTransformer
-│   ├── models.py            # Pipeline definitions for all 5 classifiers
+│   ├── models.py            # Pipeline definitions for all 5 classifiers + PARAM_GRIDS
 │   └── evaluation.py        # CV, test metrics, confusion matrix, ROC & learning curves
 │
 ├── notebooks/
-│   ├── bechdel_1_to_44.ipynb            # Main end-to-end notebook (EDA → tuning → eval)
+│   ├── bechdel_1_to_44.ipynb            # Main end-to-end notebook
 │   ├── bechdel_experiments.ipynb        # Extended experiment suite
-│   └── bechdel_experiments_fixed.ipynb  # Comprehensive experiment suite (final version)
+│   └── bechdel_experiments_fixed.ipynb  # Final experiment suite with ablations
 │
 ├── data/
-│   ├── movies_complete.csv              # Merged Bechdel + IMDb + TMDb dataset (not committed)
-│   ├── Bechdel_IMDB_Merge0524.csv       # Raw Bechdel/IMDb merge
-│   └── movies_enriched_5k.csv          # TMDb enrichment subset
+│   ├── movies_complete.csv          # Merged Bechdel + IMDb + TMDb (not committed)
+│   ├── Bechdel_IMDB_Merge0524.csv   # Raw Bechdel/IMDb merge
+│   └── movies_enriched_5k.csv       # TMDb enrichment subset
 │
 └── README.md
 ```
 
 ---
 
-## Feature Engineering
+## Dataset
 
-All feature engineering is **row-local and deterministic** — transformations depend only on a row's own values, so they can safely be applied before the train/test split with zero leakage.
+Two Kaggle datasets merged on IMDb title ID:
 
-| Feature | Derivation |
-|---------|-----------|
-| `log_budget` | `log1p(budget)` — compresses heavy-tailed financial data |
-| `log_revenue` | `log1p(revenue)` |
-| `log_num_votes` | `log1p(num_votes)` |
-| `log_runtime` | `log1p(runtime)` |
-| `decade` | Year bucketed to decade (e.g. `1990s`) — one-hot encoded |
-| `genre_*` | Binary indicator for each of 15 top genres |
-| `num_genres` | Number of genres assigned to a film |
+**Bechdel + IMDb merge** — 9,000 films with Bechdel scores (0–3) and IMDb metadata (year, runtime, rating, vote count). Bechdel labels from bechdeltest.com — community-sourced and reviewed.
 
-Stat-dependent transformations (imputation, scaling, one-hot encoding) are embedded inside each model's `Pipeline` and fitted exclusively on training data within each CV fold.
+**TMDb enrichment** — 5,000 films with budget, revenue, popularity, cast size, and plot summaries.
+
+**Merge result** — ~5,000 usable rows. TMDb features present for ~22% of films.
+
+**Target variable** — Bechdel score = 3 → pass (1); score < 3 → fail (0). Class split: 57% pass / 43% fail.
+
+> **Note on missingness:** Budget, revenue, and TMDb popularity are missing for a large fraction of films. This is not random — it correlates with production scale. The project explicitly tests whether data absence is itself a predictive signal (it isn't, meaningfully).
+
+---
+
+## Features
+
+All feature engineering lives in `preprocessing.py` and is row-local — no dataset statistics are needed, so it runs safely before the train/test split.
+
+| Feature | Type | Derivation |
+|---|---|---|
+| `year` | Numeric | Raw |
+| `runtime` | Numeric | Raw |
+| `log_budget` | Numeric | `log1p(budget)` |
+| `log_revenue` | Numeric | `log1p(revenue)` |
+| `imdb_rating` | Numeric | Raw |
+| `log_num_votes` | Numeric | `log1p(num_votes)` |
+| `num_genres` | Numeric | Count of genres assigned |
+| `decade` | Categorical | `(year // 10 * 10)` → one-hot encoded |
+| `genre_drama` … `genre_biography` | Binary | 15 flags from `TOP_GENRES` |
+
+Stat-dependent steps — `SimpleImputer`, `StandardScaler`, `OneHotEncoder` — are embedded inside each model's `Pipeline` and fitted only on training data within each CV fold. Leakage is architecturally impossible.
 
 ---
 
 ## Models
 
-Five classifiers are evaluated, from trivial to complex:
+All five models are built by `make_model(name)` in `models.py`, which returns a `Pipeline([("preprocess", build_preprocessor()), ("clf", clf)])`.
 
 | Key | Model | Notes |
-|-----|-------|-------|
-| `dummy` | `DummyClassifier` (most frequent) | Baseline reference |
-| `logreg` | Logistic Regression | `class_weight="balanced"`, `max_iter=1000` |
+|---|---|---|
+| `dummy` | DummyClassifier | `strategy="most_frequent"` — sets the floor |
+| `logreg` | Logistic Regression | `class_weight="balanced"`, GridSearch over C ∈ [0.01, 0.1, 1.0, 10.0] |
 | `tree` | Decision Tree | `max_depth=6`, `class_weight="balanced"` |
-| `rf` | Random Forest | 300 trees, `min_samples_leaf=2`, balanced weights |
-| `xgb` | XGBoost | 400 estimators, `lr=0.05`, `max_depth=5` |
-
-Every model is returned as a `sklearn.pipeline.Pipeline` with preprocessing included, ensuring identical, leakage-safe treatment across training and evaluation.
+| `rf` | Random Forest | 300 trees, `min_samples_leaf=2`, GridSearch over depth and leaf size |
+| `xgb` | XGBoost | 400 estimators, `lr=0.05`, `max_depth=5`, RandomizedSearchCV 50 iterations |
 
 ---
 
 ## Experiments
 
-The experiment suite in `bechdel_experiments_fixed.ipynb` runs a structured set of comparisons, all using a fixed train/test split with model selection based solely on CV ROC-AUC:
+`bechdel_experiments_fixed.ipynb` runs a structured suite of comparisons, all using a fixed train/test split with model selection based on CV ROC-AUC:
 
-### 1. Baseline — All Models
-All five classifiers under identical conditions (median imputation, no TF-IDF, no extra signals). Establishes the best-performing model for downstream experiments.
+**Baseline** — all five models under identical conditions. Establishes the best-performing model for downstream experiments.
 
-### 2. Imputation Strategy
-Tests three missing-value strategies — `median`, `mean`, `most_frequent` — given that TMDb-derived features are 50–78% missing. Median is robust to outliers in budget/revenue and serves as the default.
+**Imputation strategy** — median vs mean vs most_frequent. Median is robust to outliers in budget/revenue and is used as the default.
 
-### 3. Missingness as Signal
-Adds five binary indicator features (`budget_missing`, `revenue_missing`, `popularity_missing`, `cast_size_missing`, `plot_missing`). Tests whether the *absence* of enrichment data predicts Bechdel outcomes — an enrichment artifact check.
+**Missingness as signal** — adds binary indicators (`budget_missing`, `revenue_missing`, `popularity_missing`) to test whether the absence of TMDb data is itself predictive. Small effect, not a meaningful one.
 
-### 4. Ablation Experiments
-Systematically removes feature groups to measure each group's contribution to ROC-AUC:
+**Ablation experiments** — systematically removes feature groups to measure contribution:
 
 | Ablation | Features removed |
-|----------|-----------------|
+|---|---|
 | No genre | All 15 genre binary flags |
 | No popularity | `log_num_votes`, `tmdb_popularity` |
 | No temporal | `year`, `decade` |
-| No TMDb enrichment | `log_budget`, `log_revenue`, `tmdb_popularity`, `log_cast_size` |
+| No TMDb enrichment | `log_budget`, `log_revenue`, `tmdb_popularity` |
 | No runtime | `log_runtime` |
-| No female director | `female_director` flag |
 
-### 5. Visualisations & Interpretation
-ROC curves, confusion matrices, precision-recall curves, permutation importances, partial dependence plots, and learning curves — each paired with a written interpretation of what it shows and which research question it addresses.
+**Visualisations** — ROC curves, confusion matrices, precision-recall curves, permutation importances, and learning curves via `plot_roc()`, `plot_confusion()`, and `plot_learning_curve()` in `evaluation.py`.
 
 ---
 
-## Results
-
-Performance is reported as **ROC-AUC** (primary) and F1 (secondary). Model selection is based exclusively on cross-validated ROC-AUC on the training split — the test set is evaluated exactly once per experiment.
-
-> Full numeric results are produced when you run the notebooks against the real dataset. See [Reproducing the Results](#reproducing-the-results) below.
-
-Key findings:
-- **Genre** is the strongest individual feature group; removing it produces the largest AUC drop.
-- **Temporal features** (year, decade) contribute meaningfully, reflecting changing industry norms over time.
-- **Missingness indicators** provide a small but measurable signal, confirming that data absence is not missing at random.
-- The best model substantially outperforms the dummy baseline, indicating that the metadata contains genuine signal — but the ablation results suggest genre stereotypes account for a significant fraction of it.
-
----
-
-## Installation & Usage
-
-### Requirements
-
-- Python ≥ 3.9
-- `scikit-learn`, `xgboost`, `pandas`, `numpy`, `matplotlib`, `seaborn`
+## Installation
 
 ```bash
+git clone https://github.com/rmetchkarovaieu2024-bit/ML_group_project.git
+cd ML_group_project
 pip install scikit-learn xgboost pandas numpy matplotlib seaborn jupyter
 ```
 
-### Running the pipeline
+Place the Kaggle CSV at `data/movies_complete.csv`. If unavailable, `load_synthetic_data()` in `data_loader.py` generates a realistic fallback dataset automatically — but metrics from synthetic data are watermarked and are not scientific results.
 
 ```bash
-# Clone the repository
-git clone https://github.com/rmetchkarovaieu2024-bit/ML_group_project.git
-cd ML_group_project
-```
-
-Place the Kaggle CSV at `data/movies_complete.csv` (or use the synthetic fallback — the loader detects automatically).
-
-```bash
-# Run the main notebook
-jupyter notebook notebooks/bechdel_1_to_44.ipynb
-
 # Run the full experiment suite
 jupyter notebook notebooks/bechdel_experiments_fixed.ipynb
 ```
 
+Approximate runtime on a modern laptop: ~12 minutes including hyperparameter search.
+
+All random states are fixed at `seed=42` throughout for reproducibility.
+
 ---
 
-## Key Design Decisions
+## Ethical Considerations
 
-**Leakage prevention** — All stat-dependent transforms (imputation, scaling, OHE) live inside each model's `Pipeline` and are fit only on training folds during CV.
+This model is **descriptive, not prescriptive**.
 
-**Class imbalance** — All classifiers use `class_weight="balanced"` where supported; XGBoost uses `scale_pos_weight`. Evaluation prioritises F1 and ROC-AUC over accuracy.
+It was built to study patterns in historical data — not to evaluate films or filmmakers, and not to inform financing or distribution decisions. The Bechdel Test is a blunt instrument: passing it doesn't make a film feminist, and failing it doesn't mean it lacks female depth. IMDb ratings encode historical inequity in who reviews films. A model trained on that data reproduces those patterns.
 
-**Shortcut auditing** — The ablation and missingness experiments are explicitly designed to test whether the model exploits confounders rather than representation-related signal.
+Our results are a lens for critical discussion. Not a scoring system. Not a gatekeeping tool.
+
+---
+
+## Reproduction Checklist
+
+1. Download [*9000+ Movies: IMDb and Bechdel*](https://www.kaggle.com/) from Kaggle → save as `data/movies_complete.csv`
+2. Run `bechdel_experiments_fixed.ipynb` top to bottom
+3. All random states fixed (`seed=42`) — results are fully reproducible
+4. Synthetic fallback activates automatically if the CSV is absent — outputs are watermarked
