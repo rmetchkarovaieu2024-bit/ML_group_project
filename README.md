@@ -14,7 +14,7 @@ Can a machine predict whether a film gives women a real voice on screen — from
 
 We built a supervised ML pipeline to answer that question. Using pre-release movie metadata — genre, release year, runtime, IMDb rating, budget, revenue — we trained five classifiers to predict whether a film passes the **Bechdel Test**: the widely used three-criteria benchmark for female representation in cinema.
 
-Our best model, a tuned XGBoost classifier, reaches **ROC-AUC 0.700** — twenty points above a coin-flip baseline. Genre is the strongest individual signal, but removing it entirely barely hurts the model. Decade, popularity, and financial scale carry more weight than expected. The ceiling isn't the models. It's the data.
+Our best model, a tuned XGBoost classifier, reaches **ROC-AUC 0.6842**, approximately twenty points above a coin-flip baseline. Genre is the strongest individual signal, removing it entirely moderately hurts the model. Decade, popularity, and financial scale carry more weight than expected. The ceiling isn't the models. It's the data.
 
 ---
 
@@ -32,13 +32,13 @@ Only **57% of films** in our dataset pass all three. More than four in ten films
 
 ## Results at a Glance
 
-| Model | CV ROC-AUC | Test AUC | Test F1 |
+| Model | CV ROC-AUC | Test ROC-AUC | Test F1 |
 |---|---|---|---|
 | Dummy (majority) | 0.500 ± 0.000 | 0.500 | 0.732 |
-| Decision Tree (d=6) | 0.618 ± 0.014 | 0.633 | 0.721 |
-| Logistic Regression | 0.659 ± 0.012 | 0.665 | 0.719 |
-| Random Forest (n=300) | 0.668 ± 0.011 | 0.655 | 0.705 |
-| **XGBoost (tuned) ★** | **0.689 ± 0.009** | **0.700** | **0.714** |
+| Decision Tree (d=6) | 0.641 ± 0.014 | 0.655 | 0.713 |
+| Logistic Regression | 0.675 ± 0.012 | 0.689 | 0.719 |
+| Random Forest (n=300) | 0.664 ± 0.011 | 0.675 | 0.705 |
+| **XGBoost ★** | **0.678 ± 0.009** | **0.684** | **0.719** |
 
 Key findings from the experiment suite:
 
@@ -55,15 +55,15 @@ Key findings from the experiment suite:
 ML_group_project/
 │
 ├── src/
-│   ├── data_loader.py       # Real CSV loader + synthetic data generator
-│   ├── preprocessing.py     # Feature engineering & sklearn ColumnTransformer
-│   ├── models.py            # Pipeline definitions for all 5 classifiers + PARAM_GRIDS
-│   └── evaluation.py        # CV, test metrics, confusion matrix, ROC & learning curves
+│   ├── data_loader2.py       # Real CSV loader + synthetic data generator
+│   ├── preprocessing2.py     # Feature engineering & sklearn ColumnTransformer
+│   ├── models2.py            # Pipeline definitions for all 5 classifiers + PARAM_GRIDS
+│   └── evaluation2.py        # CV, test metrics, confusion matrix, ROC & learning curves
 │
 ├── notebooks/
 │   ├── bechdel_1_to_44.ipynb            # Main end-to-end notebook
 │   ├── bechdel_experiments.ipynb        # Extended experiment suite
-│   └── bechdel_experiments_fixed.ipynb  # Final experiment suite with ablations
+│   └── bechdel_experiments_fixedV2.ipynb  # Final experiment suite with ablations, RUN THIS FOR REPRODUCABILITY OF RESULTS
 │
 ├── data/
 │   ├── movies_complete.csv          # Merged Bechdel + IMDb + TMDb (not committed)
